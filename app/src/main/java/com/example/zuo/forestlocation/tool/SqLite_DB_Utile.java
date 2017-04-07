@@ -2,17 +2,17 @@ package com.example.zuo.forestlocation.tool;
 
 import android.content.Context;
 import android.text.TextUtils;
+import android.util.Log;
 
-import com.lidroid.xutils.DbUtils;
-import com.lidroid.xutils.db.sqlite.Selector;
-import com.lidroid.xutils.db.sqlite.WhereBuilder;
-import com.lidroid.xutils.exception.DbException;
-import com.weiying.sdk.login.LoginManager;
-import com.weiying.sdk.login.WYUserInfo;
-import com.wesai.ticket.data.beans.MessageBean;
-import com.wesai.ticket.data.beans.PeopleBean;
-import com.wesai.ticket.net.IAPIService;
-import com.wesai.ticket.show.model.History;
+import com.example.zuo.forestlocation.bean.LocationBean;
+
+
+import org.xutils.DbManager;
+import org.xutils.db.Selector;
+import org.xutils.db.sqlite.WhereBuilder;
+import org.xutils.db.table.TableEntity;
+import org.xutils.ex.DbException;
+import org.xutils.x;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,10 +25,39 @@ public class SqLite_DB_Utile {
 
     Context context;
     public static SqLite_DB_Utile db_utile = null;
-    DbUtils historyDB;
+    DbManager historyDB;
 
     public SqLite_DB_Utile(Context context) {
-        historyDB = DbUtils.create(context, "HistoryDB.db", 1, null);//创建数据库表
+
+        DbManager.DaoConfig daoConfig = new DbManager.DaoConfig()
+                .setDbName("lyj_db")//创建数据库的名称
+                .setDbVersion(1)//数据库版本号
+                //设置数据库打开的监听
+                .setDbOpenListener(new DbManager.DbOpenListener() {
+                    @Override
+                    public void onDbOpened(DbManager db) {
+                        //开启数据库支持多线程操作，提升性能，对写入加速提升巨大
+                        db.getDatabase().enableWriteAheadLogging();
+                    }
+                })
+                //设置数据库更新的监听
+                .setDbUpgradeListener(new DbManager.DbUpgradeListener() {
+                    @Override
+                    public void onUpgrade(DbManager db, int oldVersion, int newVersion) {
+                    }
+                })
+                //设置表创建的监听
+                .setTableCreateListener(new DbManager.TableCreateListener() {
+                    @Override
+                    public void onTableCreated(DbManager dbManager, TableEntity<?> tableEntity) {
+                        Log.i("JAVA", "onTableCreated：" + tableEntity.getName());
+                    }
+
+                });
+        //设置是否允许事务，默认true
+        //.setAllowTransaction(true)
+
+        historyDB = x.getDb(daoConfig);
         this.context = context;
 
     }
@@ -49,54 +78,18 @@ public class SqLite_DB_Utile {
     }
 
 
-    /**
-     * 保存用户搜索的关键字
-     *
-     * @param searchEdiText
-     */
-    public void saveSearchKeyWord(String searchEdiText) {
-        try {
-            List<History> mHistory = null;
-            try {
-                mHistory = historyDB.findAll(Selector.from(History.class).orderBy(History.ID, true).limit(15));
-            } catch (DbException e) {
-                e.printStackTrace();
-            }
-
-            boolean isSave = true;
-            if (mHistory != null && mHistory.size() > 0) {
-                for (History history : mHistory) {
-                    if (history.getName().equals(searchEdiText)) {
-                        isSave = false;
-                    }
-                }
-            }
-            if (isSave) {
-                History hs = new History();
-                hs.setName(searchEdiText);
-                try {
-                    historyDB.save(hs);
-                } catch (DbException e) {
-                    if (IAPIService.isDebug) e.printStackTrace();
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-    }
     /**--------------------------------------------------------------------------消息信息-------------------------------------------------------------------------------------- */
 
     /**
      * 保存消息信息
      *
-     * @param messageBean
+     * @param locationBean
      */
-    public void saveMessage(MessageBean messageBean) {
+    public void saveLocationData(LocationBean locationBean) {
 
-        if (messageBean != null) {
+        if (locationBean != null) {
             try {
-                historyDB.save(messageBean);
+                historyDB.save(locationBean);
             } catch (DbException e) {
                 e.printStackTrace();
             }
@@ -108,12 +101,13 @@ public class SqLite_DB_Utile {
     /**
      * 修改消息信息
      *
-     * @param messageBean
+     * @param locationBean
      */
-    public void updataMessage(MessageBean messageBean) {
-        if (messageBean != null && !TextUtils.isEmpty(messageBean.getId())) {
+    public void updataLocationData(LocationBean locationBean) {
+        if (locationBean != null && !TextUtils.isEmpty(locationBean.getId())) {
             try {
-                historyDB.update(messageBean, WhereBuilder.b("id", "=", messageBean.getId()), "status");
+
+                historyDB.saveOrUpdate(locationBean);
 
             } catch (DbException e) {
                 e.printStackTrace();
@@ -127,9 +121,9 @@ public class SqLite_DB_Utile {
      *
      * @return
      */
-    public List getAllMessage(int page, int size) {
+    public List getAllLocationData() {
         try {
-            List<MessageBean> messageBeens = historyDB.findAll(Selector.from(MessageBean.class).limit(size).offset(page * size));
+            List<LocationBean> messageBeens = historyDB.findAll(LocationBean.class);
 
             return messageBeens;
         } catch (DbException e) {
@@ -139,264 +133,23 @@ public class SqLite_DB_Utile {
         return null;
     }
 
-    /**
-     * 查询消息已查看看在下未查看在上按时间排序
-     * .where(WhereBuilder.b("userId", "=", userInfo.getUserId()))
-     *
-     * @return
-     */
-    public List getAllMessage() {
-        try {
-            WYUserInfo userInfo = LoginManager.getInstance().getUserInfo();
-            if (userInfo != null && !TextUtils.isEmpty(userInfo.getUserId())) {
-                List<MessageBean> baseMessageBeens = historyDB.findAll(Selector.from(MessageBean.class).where(WhereBuilder.b("userId", "=", userInfo.getUserId()).or("userId", "=", "")).orderBy("status,time", true));
-                return baseMessageBeens;
-            }
 
-        } catch (DbException e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
 
 
     /**
      * 删除对应消息信息
      *
-     * @param messageBean
+     * @param locationBean
      */
-    public void deleteMessage(MessageBean messageBean) {
+    public void deleteLocationData(LocationBean locationBean) {
         try {
-            if (messageBean != null && !TextUtils.isEmpty(messageBean.getId())) {
-                historyDB.delete(MessageBean.class, WhereBuilder.b("id", "=", messageBean.getId()));
+            if (locationBean != null && !TextUtils.isEmpty(locationBean.getId())) {
+                historyDB.delete(LocationBean.class, WhereBuilder.b("id", "=", locationBean.getId()));
             }
 
         } catch (DbException e) {
             e.printStackTrace();
         }
-    }
-
-    /**
-     * 当前是否有未读消息
-     * .where(WhereBuilder.b("userId", "=", userInfo.getUserId()))
-     *
-     * @return
-     */
-    public boolean getIsNoMessage() {
-
-        try {
-            WYUserInfo userInfo = LoginManager.getInstance().getUserInfo();
-            if (userInfo != null && !TextUtils.isEmpty(userInfo.getUserId())) {
-                List<MessageBean> baseMessageBeens = historyDB.findAll(Selector.from(MessageBean.class).where(WhereBuilder.b("userId", "=", userInfo.getUserId()).or("userId", "=", "")).orderBy("status,time", true));
-                if (baseMessageBeens != null && baseMessageBeens.size() > 0) {
-                    for (int i = 0; i < baseMessageBeens.size(); i++) {
-                        if (baseMessageBeens.get(i).getStatus() == 0) {
-                            return true;
-                        }
-                    }
-                } else {
-                    return false;
-                }
-            } else {
-                List<MessageBean> baseMessageBeens = historyDB.findAll(Selector.from(MessageBean.class).where(WhereBuilder.b("userId", "=", "")).orderBy("status,time", true));
-                if (baseMessageBeens != null && baseMessageBeens.size() > 0) {
-                    for (int i = 0; i < baseMessageBeens.size(); i++) {
-                        if (baseMessageBeens.get(i).getStatus() == 0) {
-                            return true;
-                        }
-                    }
-                } else {
-                    return false;
-                }
-            }
-
-
-        } catch (DbException e) {
-            e.printStackTrace();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        return false;
-    }
-
-    /**
-     * 根据id查询数据
-     */
-
-    public MessageBean getMessageById(String messageId) {
-        try {
-            WYUserInfo userInfo = LoginManager.getInstance().getUserInfo();
-            MessageBean messageBean = null;
-            if (userInfo != null && !TextUtils.isEmpty(userInfo.getUserId())) {
-                List<MessageBean> baseMessageBeens = historyDB.findAll(Selector.from(MessageBean.class).where(WhereBuilder.b("id", "=", messageId)));
-                if (baseMessageBeens != null && baseMessageBeens.size() > 0) {
-                    messageBean = baseMessageBeens.get(0);
-                    return messageBean;
-                }
-
-            }
-
-        } catch (DbException e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-
-
-    /**---------------------------------------------------------------------------实名信息---------------------------------------------------------------------- **/
-
-    /**
-     * 添加实名信息
-     *
-     * @param peopleBean
-     */
-    public void savePeople(PeopleBean peopleBean) {
-        if (peopleBean != null) {
-            try {
-                historyDB.save(encryptObject(peopleBean));
-            } catch (DbException e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
-
-//
-
-    public PeopleBean encryptObject(PeopleBean bean) {
-
-        try {
-            PeopleBean tem = (PeopleBean) bean.clone();
-            tem.setName(tem.setEncrypt(tem.getName()));
-            tem.setCardId(tem.setEncrypt(tem.getCardId()));
-            return tem;
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return bean;
-
-    }
-
-    public PeopleBean decryptObject(PeopleBean bean) {
-        try {
-            PeopleBean tem = (PeopleBean) bean.clone();
-            tem.setName(tem.setDecrypt(tem.getName()));
-            tem.setCardId(tem.setDecrypt(tem.getCardId()));
-            return tem;
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return bean;
-
-    }
-
-    /**
-     * 修改实名信息
-     *
-     * @param peopleBean
-     */
-    public void updataPeople(PeopleBean peopleBean) {
-        if (peopleBean != null && !TextUtils.isEmpty(peopleBean.getId())) {
-            try {
-                PeopleBean tem = encryptObject(peopleBean);
-                historyDB.update(tem, WhereBuilder.b("id", "=", tem.getId()), "name", "cardId", "isUser");
-            } catch (DbException e) {
-                e.printStackTrace();
-            }
-
-        }
-    }
-
-
-    /**
-     * 获取所有实名信息
-     *
-     * @return
-     */
-    public List getAllPeople() {
-        try {
-            WYUserInfo userInfo = LoginManager.getInstance().getUserInfo();
-            if (userInfo != null && !TextUtils.isEmpty(userInfo.getUserId())) {
-                List<PeopleBean> baseMessageBeens = historyDB.findAll(Selector.from(PeopleBean.class).where(WhereBuilder.b("userId", "=", userInfo.getUserId())).orderBy("isUser DESC,addDate", true));
-
-                if (baseMessageBeens != null) {
-                    for (PeopleBean tem : baseMessageBeens) {
-                        tem.setName(tem.setDecrypt(tem.getName()));
-                        tem.setCardId(tem.setDecrypt(tem.getCardId()));
-                    }
-                }
-
-                return baseMessageBeens;
-            }
-
-        } catch (DbException e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-
-
-    /**
-     * 删除
-     *
-     * @param peopleBean
-     */
-    public void deletePeople(PeopleBean peopleBean) {
-        try {
-            if (peopleBean != null && !TextUtils.isEmpty(peopleBean.getId())) {
-                historyDB.delete(PeopleBean.class, WhereBuilder.b("id", "=", peopleBean.getId()));
-            }
-        } catch (DbException e) {
-            e.printStackTrace();
-        }
-    }
-
-
-    /**
-     * 判断是否有该信息
-     *
-     * @return
-     */
-    public boolean getIsHasPeople(PeopleBean peopleBean) {
-        try {
-            WYUserInfo userInfo = LoginManager.getInstance().getUserInfo();
-            if (peopleBean != null && userInfo != null && !TextUtils.isEmpty(userInfo.getUserId())) {
-                List<PeopleBean> baseMessageBeens = historyDB.findAll(Selector.from(PeopleBean.class).where(WhereBuilder.b("userId", "=", userInfo.getUserId())).and(WhereBuilder.b("cardId", "=", peopleBean.setEncrypt(peopleBean.getCardId()))));
-                if (baseMessageBeens != null && baseMessageBeens.size() > 0) {
-                    return true;
-                }
-            }
-
-        } catch (DbException e) {
-            e.printStackTrace();
-        }
-        return false;
-    }
-
-    /**
-     * 获取默认用户
-     *
-     * @return
-     */
-    public PeopleBean getDefaultPeople() {
-        try {
-            WYUserInfo userInfo = LoginManager.getInstance().getUserInfo();
-            if (userInfo != null && !TextUtils.isEmpty(userInfo.getUserId())) {
-                List<PeopleBean> baseMessageBeen = historyDB.findAll(Selector.from(PeopleBean.class).where(WhereBuilder.b("userId", "=", userInfo.getUserId())).and(WhereBuilder.b("isUser", "=", true)));
-                if (baseMessageBeen != null && baseMessageBeen.size() > 0) {
-                    PeopleBean tem = baseMessageBeen.get(0);
-                    tem.setName(tem.setDecrypt(tem.getName()));
-                    tem.setCardId(tem.setDecrypt(tem.getCardId()));
-                    return tem;
-                }
-            }
-
-        } catch (DbException e) {
-            e.printStackTrace();
-        }
-        return null;
-
     }
 
 
