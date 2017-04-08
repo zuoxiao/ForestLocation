@@ -9,11 +9,13 @@ import android.widget.TextView;
 import com.example.zuo.forestlocation.R;
 import com.example.zuo.forestlocation.base.FrameActivity;
 
+import butterknife.ButterKnife;
 import butterknife.InjectView;
 import butterknife.OnClick;
 
 
 public class MainActivity extends FrameActivity {
+
 
 
     @InjectView(R.id.main_name)
@@ -28,7 +30,7 @@ public class MainActivity extends FrameActivity {
         super.onCreate(savedInstanceState);
         appendMainBody(R.layout.activity_main);
         setTopBarTitle("登录");
-
+        ButterKnife.inject(this);
     }
 
 
@@ -41,4 +43,6 @@ public class MainActivity extends FrameActivity {
                 break;
         }
     }
+
+
 }
