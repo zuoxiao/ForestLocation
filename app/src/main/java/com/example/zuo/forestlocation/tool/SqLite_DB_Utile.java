@@ -4,6 +4,7 @@ import android.content.Context;
 import android.text.TextUtils;
 import android.util.Log;
 
+import com.example.zuo.forestlocation.R;
 import com.example.zuo.forestlocation.bean.LocationBean;
 
 
@@ -12,6 +13,7 @@ import org.xutils.db.Selector;
 import org.xutils.db.sqlite.WhereBuilder;
 import org.xutils.db.table.TableEntity;
 import org.xutils.ex.DbException;
+import org.xutils.view.annotation.Event;
 import org.xutils.x;
 
 import java.util.ArrayList;
@@ -85,6 +87,7 @@ public class SqLite_DB_Utile {
      *
      * @param locationBean
      */
+
     public void saveLocationData(LocationBean locationBean) {
 
         if (locationBean != null) {
@@ -123,8 +126,8 @@ public class SqLite_DB_Utile {
      */
     public List getAllLocationData() {
         try {
-            List<LocationBean> messageBeens = historyDB.findAll(LocationBean.class);
-
+          //  List<LocationBean> messageBeens = historyDB.findAll(LocationBean.class);
+            List<LocationBean> messageBeens = historyDB.selector(LocationBean.class).findAll();
             return messageBeens;
         } catch (DbException e) {
             e.printStackTrace();
