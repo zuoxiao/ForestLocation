@@ -3,6 +3,7 @@ package com.example.zuo.forestlocation.activity;
 import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.location.Location;
 import android.location.LocationListener;
@@ -20,10 +21,13 @@ import com.amap.api.location.AMapLocationListener;
 import com.amap.api.maps.AMap;
 import com.amap.api.maps.LocationSource;
 import com.amap.api.maps.MapView;
+import com.amap.api.maps.UiSettings;
 import com.amap.api.maps.model.BitmapDescriptor;
 import com.amap.api.maps.model.BitmapDescriptorFactory;
 import com.amap.api.maps.model.CameraPosition;
 import com.amap.api.maps.model.LatLng;
+import com.amap.api.maps.model.Marker;
+import com.amap.api.maps.model.MarkerOptions;
 import com.amap.api.maps.model.MyLocationStyle;
 import com.amap.api.maps.model.Polyline;
 import com.amap.api.maps.model.PolylineOptions;
@@ -66,7 +70,7 @@ public class LocationMap extends BaseActivity implements AMap.OnCameraChangeList
     LocationSource.OnLocationChangedListener mListener;
     AMapLocationClient mlocationClient;
     AMapLocationClientOption mLocationOption;
-
+    private UiSettings mUiSettings;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -74,6 +78,7 @@ public class LocationMap extends BaseActivity implements AMap.OnCameraChangeList
         ButterKnife.inject(this);
         initView(savedInstanceState);
         Log.d("sha1", sHA1(this));
+        drawMarker();
     }
 
     private void initView(Bundle savedInstanceState) {
@@ -104,6 +109,8 @@ public class LocationMap extends BaseActivity implements AMap.OnCameraChangeList
         aMap.setMyLocationEnabled(true);
 // 设置定位的类型为定位模式，有定位、跟随或地图根据面向方向旋转几种
         aMap.setMyLocationType(AMap.LOCATION_TYPE_LOCATE);
+        mUiSettings = aMap.getUiSettings();
+        mUiSettings.setScaleControlsEnabled(true);
     }
 
     @OnClick({R.id.location_save, R.id.location_find, R.id.location_draw})
@@ -260,4 +267,17 @@ public class LocationMap extends BaseActivity implements AMap.OnCameraChangeList
         }
         return null;
     }
+
+    private void drawMarker() {
+        List<LocationBean> location = SqLite_DB_Utile.getInit(this).getAllLocationData();
+        if (location != null && location.size() > 0) {
+            for (int i = 0; i < location.size(); i++) {
+                LatLng latLng = new LatLng(location.get(i).getLatitude(), location.get(i).getLongitude());
+                aMap.addMarker(new MarkerOptions().position(latLng).title("位置编号："+String.valueOf(i + 1)).snippet("经度：" + location.get(i).getLongitude() + "\n" + "纬度：" + location.get(i).getLatitude()).visible(true).draggable(false).icon(BitmapDescriptorFactory.fromBitmap(BitmapFactory
+                        .decodeResource(getResources(),R.mipmap.poi_marker_pressed))));
+            }
+
+        }
+    }
+
 }
