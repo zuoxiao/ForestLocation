@@ -187,7 +187,7 @@ public class LocationMap extends BaseActivity implements AMap.OnCameraChangeList
                 latLngs.add(new LatLng(location.get(i).getLatitude(), location.get(i).getLongitude()));
             }
             polyline = aMap.addPolyline(new PolylineOptions().
-                    addAll(latLngs).width(10).color(Color.argb(255, 1, 1, 1)));
+                    addAll(latLngs).width(10).color(Color.argb(255, 111, 168, 220)));
         }
     }
 
