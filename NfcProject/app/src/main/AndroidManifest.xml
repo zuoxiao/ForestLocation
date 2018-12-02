@@ -2,6 +2,17 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="forestlocation.example.zuo.nfcproject">
 
+    <uses-permission android:name="android.permission.NFC" />
+    <!-- 要求当前设备必须要有NFC芯片 -->
+    <uses-feature
+        android:name="android.hardware.nfc"
+        android:required="true" />
+
+    <intent-filter>
+        <action android:name="android.nfc.action.TAG_DISCOVERED" />
+        <data android:mimeType="text/plain" />
+    </intent-filter>
+
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
@@ -15,6 +26,20 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".ReadTextActivity"
+            android:label="@string/str_read_text"
+            android:launchMode="singleTop">
+            <intent-filter>
+                <action android:name="android.nfc.action.TAG_DISCOVERED" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".WriteTextActivity"
+            android:label="@string/str_write_text"
+            android:launchMode="singleTop" />
     </application>
 
 </manifest>

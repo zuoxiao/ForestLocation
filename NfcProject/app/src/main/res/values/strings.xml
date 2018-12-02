@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">NfcProject</string>
+    <string name="str_read_text">读NFC标签中的文本数据</string>
+    <string name="str_write_text">写NFC标签中的文本数据</string>
 </resources>
