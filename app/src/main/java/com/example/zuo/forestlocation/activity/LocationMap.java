@@ -19,6 +19,7 @@ import com.amap.api.location.AMapLocationClient;
 import com.amap.api.location.AMapLocationClientOption;
 import com.amap.api.location.AMapLocationListener;
 import com.amap.api.maps.AMap;
+import com.amap.api.maps.CameraUpdateFactory;
 import com.amap.api.maps.LocationSource;
 import com.amap.api.maps.MapView;
 import com.amap.api.maps.UiSettings;
@@ -51,7 +52,7 @@ import butterknife.OnClick;
  * Created by zuo on 2017/4/7.
  */
 
-public class LocationMap extends BaseActivity implements AMap.OnCameraChangeListener, LocationSource, AMapLocationListener {
+public class LocationMap extends BaseActivity implements AMap.OnCameraChangeListener, LocationSource, AMapLocationListener, AMap.OnMapClickListener {
     @InjectView(R.id.location_save)
     TextView locationSave;
     @InjectView(R.id.location_find)
@@ -71,6 +72,7 @@ public class LocationMap extends BaseActivity implements AMap.OnCameraChangeList
     AMapLocationClient mlocationClient;
     AMapLocationClientOption mLocationOption;
     private UiSettings mUiSettings;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -109,9 +111,17 @@ public class LocationMap extends BaseActivity implements AMap.OnCameraChangeList
         aMap.setMyLocationEnabled(true);
 // 设置定位的类型为定位模式，有定位、跟随或地图根据面向方向旋转几种
         aMap.setMyLocationType(AMap.LOCATION_TYPE_LOCATE);
+        //设置缩放级别
+        aMap.moveCamera(CameraUpdateFactory.zoomTo(15));
+        aMap.setOnMarkerClickListener(markerClickListener);
+        aMap.setOnMapClickListener(this);
         mUiSettings = aMap.getUiSettings();
         mUiSettings.setScaleControlsEnabled(true);
+        // 定义 Marker 点击事件监听
+
     }
+
+
 
     @OnClick({R.id.location_save, R.id.location_find, R.id.location_draw})
     public void onClick(View view) {
@@ -124,8 +134,11 @@ public class LocationMap extends BaseActivity implements AMap.OnCameraChangeList
                     UUID uuid = UUID.randomUUID();
                     // locationBean.setId(uuid.toString());
                     SqLite_DB_Utile.getInit(this).saveLocationData(locationBean);
-                    Toast.makeText(this, "保存成功", Toast.LENGTH_SHORT);
-                }
+                    Toast.makeText(this, "保存成功", Toast.LENGTH_SHORT).show();
+                    drawMarker();
+                }{
+                Toast.makeText(this, "保存失败,请重试", Toast.LENGTH_SHORT).show();
+            }
 
                 break;
             case R.id.location_find:
@@ -187,7 +200,7 @@ public class LocationMap extends BaseActivity implements AMap.OnCameraChangeList
                 latLngs.add(new LatLng(location.get(i).getLatitude(), location.get(i).getLongitude()));
             }
             polyline = aMap.addPolyline(new PolylineOptions().
-                    addAll(latLngs).width(10).color(Color.argb(255, 1, 1, 1)));
+                    addAll(latLngs).width(10).color(Color.argb(255, 111, 168, 220)));
         }
     }
 
@@ -268,16 +281,35 @@ public class LocationMap extends BaseActivity implements AMap.OnCameraChangeList
         return null;
     }
 
+    /**
+     * 绘制点
+     */
     private void drawMarker() {
         List<LocationBean> location = SqLite_DB_Utile.getInit(this).getAllLocationData();
         if (location != null && location.size() > 0) {
             for (int i = 0; i < location.size(); i++) {
                 LatLng latLng = new LatLng(location.get(i).getLatitude(), location.get(i).getLongitude());
-                aMap.addMarker(new MarkerOptions().position(latLng).title("位置编号："+String.valueOf(i + 1)).snippet("经度：" + location.get(i).getLongitude() + "\n" + "纬度：" + location.get(i).getLatitude()).visible(true).draggable(false).icon(BitmapDescriptorFactory.fromBitmap(BitmapFactory
-                        .decodeResource(getResources(),R.mipmap.poi_marker_pressed))));
+                aMap.addMarker(new MarkerOptions().position(latLng).title("位置编号：" + String.valueOf(i + 1)).snippet("经度：" + location.get(i).getLongitude() + "\n" + "纬度：" + location.get(i).getLatitude()).visible(true).draggable(false).icon(BitmapDescriptorFactory.fromBitmap(BitmapFactory
+                        .decodeResource(getResources(), R.mipmap.poi_marker_pressed))));
             }
 
         }
     }
+    Marker currentMarker;
+    AMap.OnMarkerClickListener markerClickListener = new AMap.OnMarkerClickListener() {
+        // marker 对象被点击时回调的接口
+        // 返回 true 则表示接口已响应事件，否则返回false
+        @Override
+        public boolean onMarkerClick(Marker marker) {
+            currentMarker=marker;
+            return false;
+        }
+    };
+    @Override
+    public void onMapClick(LatLng latLng) {
 
+        if(currentMarker!=null&&currentMarker.isInfoWindowShown()){
+            currentMarker.hideInfoWindow();//这个是隐藏infowindow窗口的方法
+        }
+    }
 }
