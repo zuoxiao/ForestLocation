@@ -76,6 +76,8 @@ public class NfcReadHelper {
                         mfc.connect();
                         //获取扇区数量
                         int count = mfc.getSectorCount();
+                        //存储空间
+                        int size= mfc.getSize();
                         //用于判断时候有内容读取出来
                         boolean flag = false;
                         for (int i = 0; i < count; i++) {

@@ -24,6 +24,11 @@ public class Utils {
         return sb.toString().trim();
     }
 
+    /**
+     * 16进制转Byte
+     * @param hex
+     * @return
+     */
     public static byte[] hexStringToByte(String hex) {
         int len = (hex.length() / 2);
         byte[] result = new byte[len];
